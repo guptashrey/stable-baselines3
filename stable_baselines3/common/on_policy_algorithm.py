@@ -63,6 +63,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         max_grad_norm: float,
         use_sde: bool,
         sde_sample_freq: int,
+        n_step_advantage: bool,
         tensorboard_log: Optional[str] = None,
         create_eval_env: bool = False,
         monitor_wrapper: bool = True,
@@ -71,8 +72,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         seed: Optional[int] = None,
         device: Union[th.device, str] = "auto",
         _init_setup_model: bool = True,
-        supported_action_spaces: Optional[Tuple[gym.spaces.Space, ...]] = None,
-        n_step_advantage: bool,
+        supported_action_spaces: Optional[Tuple[gym.spaces.Space, ...]] = None
     ):
 
         super().__init__(
