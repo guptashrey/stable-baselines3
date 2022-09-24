@@ -272,7 +272,7 @@ class OnPolicyAlgorithm(BaseAlgorithm):
 
             self.train()
 
-        if self.use_n_step_advantage:
+        if self.n_step_advantage:
             print("Modified A2C Implementing N-Step Advantage")
         else:
             print("Default A2C Using Vanilla Returns & Advantage")
