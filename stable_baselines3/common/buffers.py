@@ -345,6 +345,7 @@ class RolloutBuffer(BaseBuffer):
         gae_lambda: float = 1,
         gamma: float = 0.99,
         n_envs: int = 1,
+        n_step_advantage: bool = False,
     ):
 
         super().__init__(buffer_size, observation_space, action_space, device, n_envs=n_envs)
@@ -353,6 +354,7 @@ class RolloutBuffer(BaseBuffer):
         self.observations, self.actions, self.rewards, self.advantages = None, None, None, None
         self.returns, self.episode_starts, self.values, self.log_probs = None, None, None, None
         self.generator_ready = False
+        self.n_step_advantage = n_step_advantage
         self.reset()
 
     def reset(self) -> None:
@@ -389,8 +391,10 @@ class RolloutBuffer(BaseBuffer):
         """
         # Convert to numpy
         last_values = last_values.clone().cpu().numpy().flatten()
+        n_step_advantage = self.n_step_advantage
 
         last_gae_lam = 0
+        R = last_values
         for step in reversed(range(self.buffer_size)):
             if step == self.buffer_size - 1:
                 next_non_terminal = 1.0 - dones
@@ -398,9 +402,14 @@ class RolloutBuffer(BaseBuffer):
             else:
                 next_non_terminal = 1.0 - self.episode_starts[step + 1]
                 next_values = self.values[step + 1]
-            delta = self.rewards[step] + self.gamma * next_values * next_non_terminal - self.values[step]
-            last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
-            self.advantages[step] = last_gae_lam
+
+            if n_step_advantage:
+                R = self.rewards[step] + self.gamma * R * next_non_terminal
+                self.advantages[step] = R - self.values[step]
+            else:
+                delta = self.rewards[step] + self.gamma * next_values * next_non_terminal - self.values[step]
+                last_gae_lam = delta + self.gamma * self.gae_lambda * next_non_terminal * last_gae_lam
+                self.advantages[step] = last_gae_lam
         # TD(lambda) estimator, see Github PR #375 or "Telescoping in TD(lambda)"
         # in David Silver Lecture 4: https://www.youtube.com/watch?v=PnHCvfgC_ZA
         self.returns = self.advantages + self.values
